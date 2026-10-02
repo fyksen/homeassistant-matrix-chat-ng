@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && useradd --system --uid 10001 --gid matrix --create-home matrix \
     && mkdir /data && chown matrix:matrix /data
 COPY --from=builder /build/target/release/matrix-ng-bridge /usr/local/bin/matrix-ng-bridge
-ARG BUILD_VERSION=0.3.0
+ARG BUILD_VERSION=0.3.1
 LABEL org.opencontainers.image.source="https://github.com/fyksen/homeassistant-matrix-chat-ng" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${BUILD_VERSION}"
@@ -19,7 +19,7 @@ LABEL org.opencontainers.image.source="https://github.com/fyksen/homeassistant-m
 FROM runtime AS supervisor_app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 gosu \
     && rm -rf /var/lib/apt/lists/*
-ARG BUILD_VERSION=0.3.0
+ARG BUILD_VERSION=0.3.1
 ARG BUILD_ARCH=amd64
 LABEL io.hass.type="app" io.hass.version="${BUILD_VERSION}" io.hass.arch="${BUILD_ARCH}"
 COPY apps/matrix_ng_bridge/startup.py /usr/local/bin/matrix-ng-supervisor
