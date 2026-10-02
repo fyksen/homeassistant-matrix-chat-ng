@@ -1,0 +1,11 @@
+{
+  "homeserver": "https://matrix.example.org",
+  "user_id": "@homeassistant:example.org",
+  "password": "REPLACE_WITH_MATRIX_PASSWORD",
+  "recovery_key": "REPLACE_WITH_EXISTING_RECOVERY_KEY_OR_REMOVE_THIS_FIELD",
+  "api_token": "REPLACE_WITH_A_RANDOM_TOKEN_OF_AT_LEAST_32_CHARACTERS",
+  "rooms": ["!REPLACE_WITH_INTERNAL_ROOM_ID"],
+  "listen_for_commands": false,
+  "storage_path": "/data",
+  "listen": "0.0.0.0:8099"
+}

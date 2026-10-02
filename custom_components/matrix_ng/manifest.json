@@ -1,0 +1,12 @@
+{
+  "domain": "matrix_ng",
+  "name": "Matrix NG",
+  "version": "0.2.0",
+  "config_flow": true,
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "dependencies": ["notify"],
+  "requirements": ["regex==2026.9.10"],
+  "codeowners": [],
+  "documentation": "https://github.com/fyksen/home-assistant-matrix-ng"
+}

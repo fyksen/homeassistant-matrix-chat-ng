@@ -1,0 +1,47 @@
+{
+  "title": "Matrix NG",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to the Rust Matrix bridge",
+        "description": "Start the Matrix NG bridge first. Matrix credentials and recovery keys stay in the bridge, not Home Assistant. Use HTTPS unless the bridge is on a trusted local connection.",
+        "data": {"bridge_url": "Bridge URL", "api_token": "Bridge API token"}
+      },
+      "room": {
+        "title": "Choose an encrypted room",
+        "description": "Only joined, encrypted rooms from the bridge allowlist are shown.",
+        "data": {"room_id": "Room"}
+      },
+      "reauth_confirm": {
+        "title": "Update the bridge API token",
+        "data": {"bridge_url": "Bridge URL", "api_token": "Bridge API token"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the Matrix bridge.",
+      "invalid_auth": "The bridge API token is invalid.",
+      "invalid_url": "Enter an HTTP(S) URL without credentials, query parameters or a fragment.",
+      "invalid_response": "The bridge returned an invalid or incompatible response.",
+      "not_ready": "The Matrix bridge has not completed sync. Check its logs and try again."
+    },
+    "abort": {
+      "already_configured": "This encrypted room is already configured for this bridge.",
+      "no_encrypted_rooms": "No joined encrypted rooms are available. Add room IDs to the bridge allowlist and join the account to those rooms using a Matrix client.",
+      "wrong_account": "Reconnect to the same bridge URL and Matrix account.",
+      "reauth_successful": "Bridge authentication updated."
+    }
+  },
+  "services": {
+    "send_message": {
+      "name": "Send encrypted message",
+      "description": "Send a message via the Rust Matrix SDK. Unencrypted rooms are refused.",
+      "fields": {
+        "message": {"name": "Message", "description": "Message text."},
+        "title": {"name": "Title", "description": "Optional title prepended to the message."},
+        "room_id": {"name": "Room ID", "description": "Optional internal room ID; must be in the bridge allowlist. Defaults to the configured room."},
+        "entry_id": {"name": "Config entry", "description": "Required when multiple Matrix NG entries are loaded."},
+        "transaction_id": {"name": "Transaction ID", "description": "Optional stable ID for retries: letters, digits, underscores or hyphens, at most 128 bytes. Reuse only for the same message."}
+      }
+    }
+  }
+}

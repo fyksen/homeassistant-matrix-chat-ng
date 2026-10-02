@@ -1,0 +1,22 @@
+send_message:
+  fields:
+    message:
+      required: true
+      example: "The garage door is open."
+      selector:
+        text:
+          multiline: true
+    title:
+      selector:
+        text:
+    room_id:
+      example: "!your-internal-room-id"
+      selector:
+        text:
+    entry_id:
+      selector:
+        config_entry:
+          integration: matrix_ng
+    transaction_id:
+      selector:
+        text:

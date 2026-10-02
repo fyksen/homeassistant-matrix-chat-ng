@@ -1,0 +1,8 @@
+target
+.venv
+__pycache__
+secrets
+data
+ha-config
+.env
+.git

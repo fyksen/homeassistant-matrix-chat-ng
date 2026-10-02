@@ -1,0 +1,21 @@
+services:
+  matrix-bridge:
+    build: .
+    restart: unless-stopped
+    stop_grace_period: 30s
+    user: "${MATRIX_NG_UID:-1000}:${MATRIX_NG_GID:-1000}"
+    ports:
+      - "127.0.0.1:8099:8099"
+    volumes:
+      - ./data:/data
+    secrets:
+      - source: matrix_config
+        target: matrix-config.json
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+secrets:
+  matrix_config:
+    file: ./secrets/matrix-config.json

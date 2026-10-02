@@ -1,0 +1,10 @@
+/target/
+/.venv/
+/.pytest_cache/
+/.ruff_cache/
+__pycache__/
+*.py[cod]
+/secrets/
+/data/
+/ha-config/
+.env
