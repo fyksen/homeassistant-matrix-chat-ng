@@ -81,20 +81,42 @@ def test_renovate_handles_every_dependency_source_and_does_not_skip_tests():
     assert config["ignoreTests"] is False
     assert config["platformAutomerge"] is False
     assert config["lockFileMaintenance"]["enabled"] is True
-    assert config["vulnerabilityAlerts"]["automerge"] is False
+    assert config["vulnerabilityAlerts"]["automerge"] is True
 
 
-def test_breaking_updates_do_not_automerge():
-    rules = json.loads((ROOT / "renovate.json").read_text())["packageRules"]
+def test_all_dependency_updates_are_automated_without_manual_approval_or_age_delays():
+    config = json.loads((ROOT / "renovate.json").read_text())
+    assert config["mode"] == "full"
+    assert config["dependencyDashboardApproval"] is False
+    assert config["prCreation"] == "immediate"
+    assert config["automerge"] is True
+    assert config["schedule"] == ["at any time"]
+    assert config["automergeSchedule"] == ["at any time"]
+    assert config["minimumReleaseAge"] is None
+    rules = config["packageRules"]
+    assert rules[-1]["matchPackageNames"] == ["*"]
+    assert rules[-1]["automerge"] is True
+    assert rules[-1]["dependencyDashboardApproval"] is False
+    for rule in rules:
+        assert rule.get("automerge") is not False
+        assert rule.get("dependencyDashboardApproval") is not True
+    for key in ("lockFileMaintenance", "vulnerabilityAlerts"):
+        assert config[key]["automerge"] is True
+        assert config[key]["dependencyDashboardApproval"] is False
+        assert config[key]["schedule"] == ["at any time"]
+
+
+def test_full_automation_keeps_required_ci_checks_and_real_version_sources():
+    config = json.loads((ROOT / "renovate.json").read_text())
+    assert config["ignoreTests"] is False
+    assert config["platformAutomerge"] is False
+    assert config["automergeType"] == "pr"
     assert any(
-        rule.get("matchUpdateTypes") == ["major"] and rule.get("automerge") is False
-        for rule in rules
-    )
-    assert any(
-        rule.get("matchCurrentVersion") == "<1.0.0"
-        and rule.get("matchUpdateTypes") == ["minor"]
-        and rule.get("automerge") is False
-        for rule in rules
+        rule.get("matchManagers") == ["github-actions"]
+        and rule.get("matchDepTypes") == ["uses-with"]
+        and rule.get("matchPackageNames") == ["rust"]
+        and rule.get("enabled") is False
+        for rule in config["packageRules"]
     )
 
 

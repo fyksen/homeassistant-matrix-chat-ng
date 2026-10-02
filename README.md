@@ -319,8 +319,8 @@ development.
 ### Automatic maintenance
 
 Renovate updates Rust/Python dependencies, Home Assistant requirements, container
-images and GitHub Actions. Routine updates can merge after CI passes; breaking
-updates require review. CI tests the supported minimum and current/latest HA
+images and GitHub Actions. All dependency updates, including major versions and
+security fixes, can merge after CI passes without approval clicks. CI tests the supported minimum and current/latest HA
 versions and also runs weekly to catch upstream changes.
 
 See **[MAINTENANCE.md](MAINTENANCE.md)** for the one-time GitHub app installation
