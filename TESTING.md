@@ -141,6 +141,21 @@ weekly creation window and release-age waiting period were removed.
 This policy attempts potentially breaking updates automatically; failed CI still
 prevents merging and may require an application-code fix.
 
+## Home Assistant OS packaging (0.3.0)
+
+- The Supervisor app image starts with a fixture bridge: the bridge runs as non-root,
+  does not inherit `SUPERVISOR_TOKEN`, and the generated connection token and `/data`
+  state survive container recreation.
+- The plain bridge image still starts as non-root and validates configuration.
+- 116 Python tests (HA 2026.9.0, 2026.9.3, stable) cover discovery and connection-token
+  provisioning, invalid discovery input, UI command add/remove, sender requirements,
+  release planning, asset generation and version consistency.
+- Rust tests (16) pass, including automatic room-allowlist validation.
+
+Not exercised locally (needs GitHub/HAOS resources): a real Supervisor install and
+discovery prompt, cold backup/restore, GHCR publishing and package visibility, and the
+native ARM64 build. CI runs native amd64 and ARM64 container tests before releasing.
+
 ## Not verified
 
 - An independent recipient's Element/other Matrix client.

@@ -17,6 +17,9 @@ def config_entry(bridge=None):
     return SimpleNamespace(
         entry_id="entry-one",
         state=ConfigEntryState.LOADED,
+        options={},
+        async_on_unload=Mock(),
+        add_update_listener=Mock(),
         data={"bridge_url": "http://localhost:8099", "api_token": "test-token", "room_id": "!room"},
         runtime_data=SimpleNamespace(bridge=bridge),
         async_create_background_task=Mock(

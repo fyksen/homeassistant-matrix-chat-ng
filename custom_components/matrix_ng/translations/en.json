@@ -7,6 +7,10 @@
         "description": "Start the Matrix NG bridge first. Matrix credentials and recovery keys stay in the bridge, not Home Assistant. Use HTTPS unless the bridge is on a trusted local connection.",
         "data": {"bridge_url": "Bridge URL", "api_token": "Bridge API token"}
       },
+      "hassio_confirm": {
+        "title": "Connect the discovered Matrix NG app",
+        "description": "The app securely supplied its connection details. Continue to select an encrypted room; no URL or API token needs to be copied."
+      },
       "room": {
         "title": "Choose an encrypted room",
         "description": "Only joined, encrypted rooms from the bridge allowlist are shown.",
@@ -28,8 +32,23 @@
       "already_configured": "This encrypted room is already configured for this bridge.",
       "no_encrypted_rooms": "No joined encrypted rooms are available. Add room IDs to the bridge allowlist and join the account to those rooms using a Matrix client.",
       "wrong_account": "Reconnect to the same bridge URL and Matrix account.",
-      "reauth_successful": "Bridge authentication updated."
+      "reauth_successful": "Bridge authentication updated.",
+      "cannot_connect": "Cannot connect to the discovered app. Start it and try again.",
+      "invalid_auth": "The discovered app token was rejected. Restart the app to rediscover it.",
+      "invalid_url": "Invalid app discovery connection details.",
+      "invalid_response": "The discovered app returned an incompatible response.",
+      "not_ready": "The app is still syncing. Try again after startup completes."
     }
+  },
+  "options": {
+    "step": {
+      "init": {"title": "Matrix commands", "menu_options": {"add_command": "Add a command", "remove_command": "Remove commands", "command_settings": "Authorized senders and enable/disable"}},
+      "add_command": {"title": "Add a Matrix command", "description": "Words are entered without !. Expressions use Python regex syntax; reactions match an exact emoji. Commands apply to this entry's room. Use a different account from the bot to issue commands.", "data": {"enabled": "Enable commands", "allowed_senders": "Authorized Matrix user IDs", "name": "Command name (used by automations)", "trigger_type": "Trigger type", "trigger": "Word, expression or emoji"}},
+      "command_settings": {"title": "Command settings", "description": "Only these full Matrix user IDs may issue commands. No wildcard is allowed. Configuring UI options overrides legacy YAML commands for this room.", "data": {"enabled": "Enable commands", "allowed_senders": "Authorized Matrix user IDs"}},
+      "remove_command": {"title": "Remove commands", "data": {"commands": "Commands to remove"}}
+    },
+    "error": {"invalid_commands": "Check the trigger and sender IDs. At least one authorized sender is required when commands exist.", "commands_disabled": "Enable command reception in the Matrix NG app/bridge first.", "cannot_connect": "Cannot connect to the bridge.", "invalid_auth": "The bridge API token is invalid.", "invalid_response": "The bridge returned an incompatible response.", "not_ready": "The bridge is not ready."},
+    "abort": {"no_commands": "No UI-configured commands to remove. Legacy YAML commands remain separate until UI settings are saved."}
   },
   "services": {
     "send_message": {

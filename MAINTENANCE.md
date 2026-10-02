@@ -35,6 +35,29 @@ does the merge itself only after checks pass (`platformAutomerge: false`). It wi
 respect existing approval requirements. If you require human approval for every PR,
 that approval remains necessary—this configuration does not bypass it.
 
+## Releases and Home Assistant OS packages
+
+After every successful CI run on a `main` push, the **Release** workflow:
+
+1. Plans a semantic version from `VERSION` and existing tags. Ordinary merges become
+   patch releases; a version is never reused.
+2. Builds native `amd64` and `aarch64` bridge and Supervisor app images and publishes
+   multi-architecture manifests to GHCR.
+3. Creates a matching GitHub release with a `matrix_ng.zip` integration asset for HACS.
+4. Fast-forwards the generated `apps` branch (app repository with the pinned image
+   version), which drives Supervisor update notifications.
+
+Release bumps are never pushed to protected `main`; the release tag and `apps` branch
+carry the stamped version.
+
+**First release only:** GitHub creates both GHCR packages as private
+(`homeassistant-matrix-chat-ng` and `homeassistant-matrix-chat-ng-app`). Open each under
+your profile's **Packages → Package settings → Change visibility → Public**, then rerun
+the failed release job. The workflow refuses to publish release metadata until both
+images are anonymously pullable.
+
+To start a new minor/major series, change `VERSION` in a normal CI-gated PR.
+
 ## What happens automatically
 
 | Dependency source | Updated by Renovate |

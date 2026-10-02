@@ -1,12 +1,22 @@
 {
   "domain": "matrix_ng",
   "name": "Matrix NG",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "config_flow": true,
   "integration_type": "service",
   "iot_class": "local_polling",
-  "dependencies": ["notify"],
-  "requirements": ["regex==2026.9.10"],
-  "codeowners": [],
+  "dependencies": [
+    "notify"
+  ],
+  "after_dependencies": [
+    "hassio"
+  ],
+  "requirements": [
+    "regex==2026.9.10"
+  ],
+  "codeowners": [
+    "@fyksen"
+  ],
+  "issue_tracker": "https://github.com/fyksen/homeassistant-matrix-chat-ng/issues",
   "documentation": "https://github.com/fyksen/homeassistant-matrix-chat-ng"
 }

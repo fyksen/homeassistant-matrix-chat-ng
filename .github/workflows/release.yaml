@@ -1,0 +1,176 @@
+name: Release
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: matrix-ng-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      should_release: ${{ steps.plan.outputs.should_release }}
+      source_sha: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - id: plan
+        name: Plan a new release only for the current tested main commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY/commits/$DEFAULT_BRANCH" --jq .sha)" != "$SOURCE_SHA" ]; then
+            echo 'should_release=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > /tmp/releases-pages.json
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/tags?per_page=100" > /tmp/tags-pages.json
+          python3 - <<'PY'
+          import json, os, sys
+          sys.path.insert(0, "scripts")
+          from release import plan_version
+          from pathlib import Path
+          releases = [release for page in json.load(open("/tmp/releases-pages.json")) for release in page]
+          known = {release["tag_name"] for release in releases}
+          releases += [{"tag_name": tag["name"], "draft": True} for page in json.load(open("/tmp/tags-pages.json")) for tag in page if tag["name"] not in known]
+          plan = plan_version(Path("VERSION").read_text().strip(), releases, os.environ["SOURCE_SHA"])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as file:
+              file.write(f"version={plan['version']}\nshould_release={str(plan['should_release']).lower()}\n")
+          PY
+
+  images:
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          persist-credentials: false
+      - name: Stamp the same release version everywhere
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: python3 scripts/release.py stamp "$VERSION"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push the native bridge image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: bridge
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
+          build-args: BUILD_VERSION=${{ needs.prepare.outputs.version }}
+          cache-from: type=gha,scope=release-${{ matrix.arch }}
+          cache-to: type=gha,scope=release-${{ matrix.arch }},mode=max
+      - name: Build and push the native Supervisor app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: supervisor_app
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ghcr.io/${{ github.repository }}-app:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
+          build-args: |
+            BUILD_VERSION=${{ needs.prepare.outputs.version }}
+            BUILD_ARCH=${{ matrix.arch }}
+          cache-from: type=gha,scope=release-${{ matrix.arch }}
+          cache-to: type=gha,scope=release-${{ matrix.arch }},mode=max
+
+  publish:
+    needs: [prepare, images]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          fetch-depth: 0
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish complete multi-architecture manifests
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          for suffix in '' '-app'; do
+            image="ghcr.io/$GITHUB_REPOSITORY$suffix"
+            docker buildx imagetools create -t "$image:$VERSION" -t "$image:latest" \
+              "$image:$VERSION-amd64" "$image:$VERSION-aarch64"
+          done
+          docker logout ghcr.io
+          for suffix in '' '-app'; do
+            if ! docker buildx imagetools inspect "ghcr.io/$GITHUB_REPOSITORY$suffix:$VERSION" >/dev/null; then
+              echo '::error::GHCR package is private. Set BOTH packages to Public in GitHub package settings, then rerun failed release jobs.'
+              exit 1
+            fi
+          done
+      - name: Publish matching HACS release and Supervisor app repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SOURCE_SHA: ${{ needs.prepare.outputs.source_sha }}
+        run: |
+          python3 scripts/release.py stamp "$VERSION"
+          python3 scripts/release.py assets
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          tag="v$VERSION"
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            git add VERSION Cargo.toml Cargo.lock Dockerfile custom_components/matrix_ng/manifest.json apps/matrix_ng_bridge/config.yaml
+            git commit --allow-empty -m "Release $tag" -m "Source commit: $SOURCE_SHA"
+            git tag "$tag"
+            git push origin "refs/tags/$tag"
+          fi
+          if ! gh release view "$tag" --json tagName >/dev/null 2>&1; then
+            gh release create "$tag" --draft --title "Matrix NG $VERSION" \
+              --notes "Source commit: $SOURCE_SHA
+
+          Versioned amd64/aarch64 bridge and Supervisor app images, matching integration, and persistent-key support."
+          fi
+          gh release upload "$tag" dist/matrix_ng.zip dist/SHA256SUMS --clobber
+          python3 scripts/publish-app-repository.py
+          gh release edit "$tag" --draft=false --latest

@@ -5,6 +5,30 @@
 Send notifications to **end-to-end encrypted Matrix rooms** using the official
 [Matrix Rust SDK](https://github.com/matrix-org/matrix-rust-sdk) (`matrix-sdk 0.19.1`).
 
+## Quick install on Home Assistant OS
+
+Both parts install from custom repositories, so no HACS or app-store listing submission is needed.
+
+1. In HACS, open **⋮ → Custom repositories** and add
+   `https://github.com/fyksen/homeassistant-matrix-chat-ng` with type **Integration**.
+   Download **Matrix NG**, then restart Home Assistant.
+2. Add the app repository:
+
+   [![Open your Home Assistant instance and show the add app repository dialog with this repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ffyksen%2Fhomeassistant-matrix-chat-ng%23apps)
+
+   Manual URL: `https://github.com/fyksen/homeassistant-matrix-chat-ng#apps`
+3. Install **Matrix NG Bridge**, enter the dedicated bot's Matrix ID and password
+   (plus an existing recovery key if possible), and start it.
+4. Accept the discovered **Matrix NG** integration and select an encrypted room.
+   The connection URL and API token are provisioned automatically.
+5. Add commands under **Settings → Devices & services → Matrix NG → Configure**.
+
+Releases ship prebuilt `amd64` and `aarch64` images (x86 PCs, 64-bit Raspberry Pi,
+Home Assistant Green), so nothing compiles on the device. Matching releases produce
+normal Home Assistant and HACS update notifications. Matrix session and encryption
+state lives in the app's persistent `/data` and is captured by cold backups; back up
+both the app and Home Assistant configuration together.
+
 There are two parts:
 
 ```text

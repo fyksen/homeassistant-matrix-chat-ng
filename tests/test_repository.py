@@ -28,6 +28,18 @@ def test_compiler_and_docker_builder_major_minor_match():
     assert version.split(".")[:2] == image_version.split(".")[:2]
 
 
+def test_dockerfile_stage_references_exist():
+    # A Renovate digest pin once replaced "FROM debian:... AS runtime" during a merge,
+    # silently turning later "FROM runtime" lines into missing Docker Hub images.
+    text = (ROOT / "Dockerfile").read_text()
+    stages = set(re.findall(r"^FROM\s+\S+\s+AS\s+(\S+)", text, re.MULTILINE | re.IGNORECASE))
+    assert {"builder", "runtime", "supervisor_app", "bridge"} <= stages
+    for reference in re.findall(r"^FROM\s+(\S+)", text, re.MULTILINE):
+        assert reference in stages or ":" in reference or "@" in reference, reference
+    for reference in re.findall(r"--from=(\S+)", text):
+        assert reference in stages, reference
+
+
 def test_minimum_ha_ci_image_matches_declared_support():
     minimum = json.loads((ROOT / "hacs.json").read_text())["homeassistant"]
     workflow = yaml.load((ROOT / ".github/workflows/ci.yaml").read_text(), Loader=yaml.BaseLoader)

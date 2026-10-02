@@ -1,0 +1,34 @@
+name: Matrix NG Bridge
+version: "0.3.0"
+slug: matrix_ng_bridge
+description: Encrypted Matrix messages and commands using the official Rust Matrix SDK
+url: https://github.com/fyksen/homeassistant-matrix-chat-ng
+image: ghcr.io/fyksen/homeassistant-matrix-chat-ng-app
+arch:
+  - amd64
+  - aarch64
+homeassistant: "2026.9.0"
+startup: services
+boot: auto
+init: true
+timeout: 40
+watchdog: http://[HOST]:[PORT:8099]/health
+discovery:
+  - matrix_ng
+backup: cold
+stage: experimental
+options:
+  user_id: ""
+  password: ""
+  homeserver: ""
+  recovery_key: ""
+  rooms: []
+  listen_for_commands: true
+schema:
+  user_id: str
+  password: password
+  homeserver: str
+  recovery_key: password
+  rooms:
+    - str
+  listen_for_commands: bool

@@ -159,6 +159,15 @@ async fn main() -> Result<()> {
             .context("Matrix recovery failed; check the key (identity will not be reset)")?;
         info!("Imported existing encryption identity from recovery storage");
     }
+    // The app may opt in to all already-joined encrypted rooms. Never join rooms.
+    if config.auto_rooms {
+        config.rooms.clear();
+        for room in client.joined_rooms() {
+            if room.latest_encryption_state().await?.is_encrypted() {
+                config.rooms.push(room.room_id().to_string());
+            }
+        }
+    }
     // Query encryption state without joining rooms or accepting invitations.
     for id in &config.rooms {
         let room_id = matrix_sdk::ruma::RoomId::parse(id)?;
