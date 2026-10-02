@@ -1,0 +1,19 @@
+configuration:
+  user_id:
+    name: Matrix account
+    description: Full Matrix ID, for example @homeassistant:example.org. Use a dedicated bot account.
+  password:
+    name: Matrix password
+    description: Required for the first login. Can be cleared after the session has been saved.
+  homeserver:
+    name: Homeserver URL
+    description: Optional HTTPS client API URL. Leave empty to discover it from the Matrix ID.
+  recovery_key:
+    name: Recovery key
+    description: Optional existing recovery key or passphrase, used to import and verify the encryption identity. Never resets your identity.
+  rooms:
+    name: Room allowlist
+    description: Optional internal room IDs. Leave empty to offer already-joined encrypted rooms in the integration's setup wizard. Restart the app after joining additional rooms.
+  listen_for_commands:
+    name: Enable command reception
+    description: Allows the integration to receive commands. Configure authorized senders and triggers in the integration's options.
