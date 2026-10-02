@@ -1,5 +1,5 @@
 name: Matrix NG Bridge
-version: "0.3.3"
+version: "0.3.4"
 slug: matrix_ng_bridge
 description: Encrypted Matrix messages and commands using the official Rust Matrix SDK
 url: https://github.com/fyksen/homeassistant-matrix-chat-ng
