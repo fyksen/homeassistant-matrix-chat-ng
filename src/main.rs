@@ -35,7 +35,11 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "matrix_ng_bridge=info,matrix_sdk=error,matrix_sdk_crypto=error".into()
+                // The SDK logs expected 404s (e.g. "Account data not found" while probing
+                // optional secret storage) as HTTP errors. Real failures are reported by
+                // this bridge with context, so the raw HTTP client log is silenced.
+                "matrix_ng_bridge=info,matrix_sdk=error,matrix_sdk::http_client=off,matrix_sdk_crypto=error"
+                    .into()
             }),
         )
         .init();
