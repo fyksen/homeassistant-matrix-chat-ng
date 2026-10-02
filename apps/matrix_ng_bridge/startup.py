@@ -115,6 +115,8 @@ def main() -> int:
 
     def stop(signum, frame):
         nonlocal stopping
+        if not stopping:
+            print("Stop requested by Home Assistant; shutting down the bridge", flush=True)
         stopping = True
         if child.poll() is None:
             child.terminate()
@@ -122,9 +124,12 @@ def main() -> int:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     registered = False
+    started = time.monotonic()
     last_attempt = 0.0
+    warned = False
     while child.poll() is None and not stopping:
-        if not registered and time.monotonic() - last_attempt >= 10:
+        # Login, initial sync and recovery take a few seconds; check quietly until then.
+        if not registered and time.monotonic() - last_attempt >= 5:
             last_attempt = time.monotonic()
             try:
                 status = request_json("http://127.0.0.1:8099/v1/status", api_token)
@@ -135,10 +140,20 @@ def main() -> int:
                     registered = True
                     print("Matrix NG ready; connection registered with Home Assistant", flush=True)
             except (OSError, ValueError, KeyError):
-                print("Waiting for the bridge/Supervisor; discovery will retry", flush=True)
+                if not warned and time.monotonic() - started >= 60:
+                    warned = True
+                    print(
+                        "Still waiting for the bridge to finish syncing or for the Supervisor; "
+                        "retrying in the background",
+                        flush=True,
+                    )
         time.sleep(0.5)
     try:
         result = child.wait(timeout=30)
+        if not stopping:
+            print(
+                f"Bridge exited unexpectedly (exit code {result}); see messages above", flush=True
+            )
         return 0 if stopping else result
     except subprocess.TimeoutExpired:
         child.kill()
