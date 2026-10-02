@@ -1,6 +1,6 @@
 # Kept outside tests/: Renovate's recommended preset ignores tests/ dependencies.
 # Renovate updates the test target without raising the supported minimum.
-ARG HOME_ASSISTANT_IMAGE=ghcr.io/home-assistant/home-assistant:2026.9.3
+ARG HOME_ASSISTANT_IMAGE=ghcr.io/home-assistant/home-assistant:2026.9.3@sha256:d8922685169707fd91e8b9729902d975f06157d005e422874d201e0261dda196
 FROM ${HOME_ASSISTANT_IMAGE}
 COPY requirements-test.txt /tmp/matrix-ng-test-requirements.txt
 RUN python -m pip install --no-cache-dir --root-user-action=ignore -r /tmp/matrix-ng-test-requirements.txt
