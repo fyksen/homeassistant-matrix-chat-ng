@@ -151,7 +151,9 @@ def main() -> int:
     try:
         result = child.wait(timeout=30)
         if not stopping:
-            print(f"Bridge exited unexpectedly (exit code {result}); see messages above", flush=True)
+            print(
+                f"Bridge exited unexpectedly (exit code {result}); see messages above", flush=True
+            )
         return 0 if stopping else result
     except subprocess.TimeoutExpired:
         child.kill()
