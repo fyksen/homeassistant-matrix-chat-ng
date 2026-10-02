@@ -13,7 +13,14 @@ from homeassistant.helpers.typing import ConfigType
 
 from .api import BridgeError, MatrixBridge
 from .commands import SETTINGS_SCHEMA, CommandListener, CommandMatcher
-from .const import CONF_API_TOKEN, CONF_BRIDGE_URL, CONF_ROOM_ID, DOMAIN, SERVICE_SEND_MESSAGE
+from .const import (
+    CONF_API_TOKEN,
+    CONF_BRIDGE_URL,
+    CONF_COMMAND_SETTINGS,
+    CONF_ROOM_ID,
+    DOMAIN,
+    SERVICE_SEND_MESSAGE,
+)
 from .coordinator import MatrixCoordinator
 
 type MatrixConfigEntry = ConfigEntry[MatrixCoordinator]
@@ -74,15 +81,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: MatrixConfigEntry) -> bo
     )
     coordinator = MatrixCoordinator(hass, entry, bridge)
     await coordinator.async_config_entry_first_refresh()
-    matcher = hass.data[DOMAIN]
+    if CONF_COMMAND_SETTINGS in entry.options:
+        options = entry.options[CONF_COMMAND_SETTINGS]
+        settings = SETTINGS_SCHEMA(
+            {
+                "commands": options.get("commands", []) if options.get("enabled", False) else [],
+                "allowed_senders": options.get("allowed_senders", []),
+            }
+        )
+        matcher = CommandMatcher(settings)
+    else:
+        matcher = hass.data[DOMAIN]
     if matcher.commands and coordinator.data.get("commands_enabled") is not True:
         raise ConfigEntryNotReady("Update the Rust bridge and set listen_for_commands to true")
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     if matcher.commands:
         listener = CommandListener(hass, entry, bridge, matcher, coordinator.data["user_id"])
         entry.async_create_background_task(hass, listener.run(), "Matrix NG command listener")
     return True
+
+
+async def async_reload_entry(hass: HomeAssistant, entry: MatrixConfigEntry) -> None:
+    """Apply GUI command changes and cancel/restart the entry-owned listener."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: MatrixConfigEntry) -> bool:

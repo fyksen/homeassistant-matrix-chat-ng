@@ -73,17 +73,31 @@ jobs:
         run: sh scripts/test-python.sh
 
   bridge:
-    name: Bridge container
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: Containers (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Build the production Rust bridge
-        run: docker build --pull -t matrix-ng-bridge:ci .
+        run: docker build --pull --target bridge -t matrix-ng-bridge:ci .
       - name: Check the runtime entrypoint and non-root user
         run: sh scripts/test-bridge-container.sh matrix-ng-bridge:ci
+      - name: Build the Supervisor app
+        env:
+          BUILD_ARCH: ${{ matrix.arch }}
+        run: docker build --target supervisor_app --build-arg "BUILD_ARCH=$BUILD_ARCH" -t matrix-ng-app:ci .
+      - name: Check bootstrap, permissions and persistent storage
+        run: sh scripts/test-app-container.sh matrix-ng-app:ci
 
   security:
     name: Rust security advisories

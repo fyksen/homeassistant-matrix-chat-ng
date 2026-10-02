@@ -54,7 +54,17 @@ pub fn router(state: AppState, token: String) -> Router {
         .route("/v1/events", get(events))
         .layer(DefaultBodyLimit::max(64 * 1024))
         .route_layer(middleware::from_fn_with_state(Arc::new(token), authorize))
+        // Supervisor watchdog: liveness/readiness only, no account or room details.
+        .route("/health", get(health))
         .with_state(state)
+}
+
+async fn health(State(state): State<AppState>) -> StatusCode {
+    if ready(&state) {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    }
 }
 
 async fn authorize(

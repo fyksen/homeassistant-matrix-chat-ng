@@ -15,6 +15,9 @@ pub struct Config {
     pub recovery_key: Option<String>,
     pub api_token: String,
     pub rooms: Vec<String>,
+    /// Explicit opt-in used by the Supervisor app's room-selection wizard.
+    #[serde(default)]
+    pub auto_rooms: bool,
     /// Receiving room content is opt-in; notification-only deployments remain unchanged.
     #[serde(default)]
     pub listen_for_commands: bool,
@@ -39,7 +42,14 @@ impl Config {
             self.api_token.len() >= 32 && self.api_token.bytes().all(|c| c.is_ascii_graphic()),
             "api_token must contain at least 32 printable ASCII characters without spaces"
         );
-        ensure!(!self.rooms.is_empty(), "rooms must not be empty");
+        ensure!(
+            self.auto_rooms || !self.rooms.is_empty(),
+            "rooms must not be empty unless auto_rooms is enabled"
+        );
+        ensure!(
+            !self.auto_rooms || self.rooms.is_empty(),
+            "auto_rooms cannot be combined with an explicit room allowlist"
+        );
         for room in &self.rooms {
             RoomId::parse(room).context("rooms must contain internal Matrix room IDs")?;
         }
