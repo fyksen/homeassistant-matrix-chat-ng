@@ -1,5 +1,7 @@
 # Matrix NG for Home Assistant
 
+[![CI](https://github.com/fyksen/homeassistant-matrix-chat-ng/actions/workflows/ci.yaml/badge.svg)](https://github.com/fyksen/homeassistant-matrix-chat-ng/actions/workflows/ci.yaml)
+
 Send notifications to **end-to-end encrypted Matrix rooms** using the official
 [Matrix Rust SDK](https://github.com/matrix-org/matrix-rust-sdk) (`matrix-sdk 0.19.1`).
 
@@ -313,6 +315,16 @@ persistent storage. CI does **not** use a real Matrix account or send real messa
 
 See `TESTING.md` for the live Home Assistant/Matrix verification performed during
 development.
+
+### Automatic maintenance
+
+Renovate updates Rust/Python dependencies, Home Assistant requirements, container
+images and GitHub Actions. Routine updates can merge after CI passes; breaking
+updates require review. CI tests the supported minimum and current/latest HA
+versions and also runs weekly to catch upstream changes.
+
+See **[MAINTENANCE.md](MAINTENANCE.md)** for the one-time GitHub app installation
+and required-check setup. After that, dependency upkeep should mostly be hands-off.
 
 To check an already-configured disposable HA instance:
 

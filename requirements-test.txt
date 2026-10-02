@@ -1,0 +1,6 @@
+# Runtime requirements are installed directly from the integration manifest.
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-aiohttp==1.1.1
+ruff==0.16.10
+PyYAML==6.0.3

@@ -1,19 +1,144 @@
-name: Tests
-on: [push, pull_request]
+name: CI
+on:
+  push:
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   rust:
+    name: Rust tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: toolchain
+        name: Read the pinned Rust version
+        run: |
+          python3 - <<'PY'
+          import os, tomllib
+          with open("rust-toolchain.toml", "rb") as file:
+              version = tomllib.load(file)["toolchain"]["channel"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as file:
+              file.write(f"version={version}\n")
+          PY
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ steps.toolchain.outputs.version }}
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --check
-      - run: cargo test --locked
-      - run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Test encryption, command handling, API and storage
+        run: cargo test --locked --all-targets -j 2
+      - name: Check Rust lints
+        run: cargo clippy --locked --all-targets -j 2 -- -D warnings
+
   home-assistant:
+    name: Home Assistant (${{ matrix.target }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [minimum, current, stable]
     steps:
       - uses: actions/checkout@v4
-      - run: sh scripts/test-python.sh
+        with:
+          persist-credentials: false
+      - name: Test against the supported minimum
+        if: matrix.target == 'minimum'
+        env:
+          # Intentional baseline; Renovate updates .github/Dockerfile.tests instead.
+          HA_TEST_IMAGE: ghcr.io/home-assistant/home-assistant:2026.9.0
+        run: sh scripts/test-python.sh
+      - name: Test the pinned current release and candidate dependency updates
+        if: matrix.target == 'current'
+        run: sh scripts/test-python.sh
+      - name: Detect new Home Assistant compatibility regressions
+        if: matrix.target == 'stable'
+        env:
+          HA_TEST_IMAGE: ghcr.io/home-assistant/home-assistant:stable
+        run: sh scripts/test-python.sh
+
+  bridge:
+    name: Bridge container
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the production Rust bridge
+        run: docker build --pull -t matrix-ng-bridge:ci .
+      - name: Check the runtime entrypoint and non-root user
+        run: sh scripts/test-bridge-container.sh matrix-ng-bridge:ci
+
+  security:
+    name: Rust security advisories
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories
+          rust-version: stable
+
+  automation:
+    name: Automation configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: ghcr.io/renovatebot/renovate:44.132.2
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate the bot configuration
+        run: renovate-config-validator --strict renovate.json
+
+  workflows:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:1.7.7
+
+  required:
+    name: CI required
+    if: always()
+    needs: [rust, home-assistant, bridge, security, automation, workflows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to pass (including all HA versions)
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ["RESULTS"])
+          failed = [name for name, job in results.items() if job["result"] != "success"]
+          if failed:
+              print("Required jobs did not pass:", ", ".join(failed))
+              sys.exit(1)
+          print("All required checks passed.")
+          PY

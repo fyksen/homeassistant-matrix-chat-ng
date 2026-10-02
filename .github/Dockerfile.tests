@@ -1,0 +1,13 @@
+# Kept outside tests/: Renovate's recommended preset ignores tests/ dependencies.
+# Renovate updates the test target without raising the supported minimum.
+ARG HOME_ASSISTANT_IMAGE=ghcr.io/home-assistant/home-assistant:2026.9.3
+FROM ${HOME_ASSISTANT_IMAGE}
+COPY requirements-test.txt /tmp/matrix-ng-test-requirements.txt
+RUN python -m pip install --no-cache-dir --root-user-action=ignore -r /tmp/matrix-ng-test-requirements.txt
+COPY custom_components/matrix_ng/manifest.json /tmp/matrix-ng-manifest.json
+# Test the exact runtime dependencies Renovate puts in manifest.json, not just
+# whatever versions happen to be bundled in the Home Assistant base image.
+RUN python -c 'import json, subprocess, sys; requirements = json.load(open("/tmp/matrix-ng-manifest.json"))["requirements"]; subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "--root-user-action=ignore", *requirements], check=True)'
+WORKDIR /work
+ENTRYPOINT ["sh", "-c"]
+CMD ["python -m pytest -q && ruff check custom_components tests scripts && ruff format --check custom_components tests scripts"]

@@ -8,5 +8,5 @@
   "dependencies": ["notify"],
   "requirements": ["regex==2026.9.10"],
   "codeowners": [],
-  "documentation": "https://github.com/fyksen/home-assistant-matrix-ng"
+  "documentation": "https://github.com/fyksen/homeassistant-matrix-chat-ng"
 }

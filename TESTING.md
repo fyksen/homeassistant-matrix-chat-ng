@@ -97,6 +97,30 @@ Additional verification on 2026-10-02:
   delivery are verified with the controlled encrypted fixture and HA event-bus tests,
   rather than claiming independent live-user verification.
 
+## Dependency automation and CI
+
+Maintenance setup was verified on 2026-10-02:
+
+- **92 Python tests** passed against HA **2026.9.0**, **2026.9.3** and the current
+  `stable` image, which reported **2026.9.4**. Runtime requirements came from the
+  integration manifest rather than being assumed from the base image.
+- `cargo test --locked --all-targets` passed **14 bridge tests and 2 example/storage
+  tests** on the pinned Rust 1.99.0 toolchain. Formatting and Clippy checks passed.
+- The production Dockerfile built successfully with the pinned toolchain. The
+  no-network smoke test verified a working binary and non-root default user.
+- `cargo-deny 0.20.2 check advisories` reported **advisories ok**.
+- Renovate **44.132.2** validated `renovate.json` in strict mode.
+- A local extraction dry run on an isolated committed snapshot detected all six
+  configured managers and the current HA test-image dependency. No remote PRs or
+  branches were created; GitHub action lookups require the installed app's token.
+- Actionlint **1.7.7** accepted the GitHub Actions workflow.
+- Shell syntax checks and `git diff --check` passed.
+
+GitHub app installation, branch protection and actual bot-created PR/merge behavior
+require the repository owner's authorization and were **not changed or exercised
+remotely** in this session. Follow `MAINTENANCE.md` once these changes are pushed.
+The GitHub setup helper deliberately refuses to overwrite existing branch protection.
+
 ## Not verified
 
 - An independent recipient's Element/other Matrix client.

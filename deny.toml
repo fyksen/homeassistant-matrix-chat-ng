@@ -1,0 +1,8 @@
+[graph]
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
+
+[advisories]
+# Known vulnerabilities remain errors. Upstream unmaintained notices should not
+# force updates of otherwise working transitive dependencies every week.
+unmaintained = "workspace"
+ignore = []

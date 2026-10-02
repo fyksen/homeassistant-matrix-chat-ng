@@ -1,0 +1,82 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "enabledManagers": ["cargo", "dockerfile", "github-actions", "homeassistant-manifest", "pip_requirements", "rust-toolchain"],
+  "dependencyDashboard": true,
+  "osvVulnerabilityAlerts": true,
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "3 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "prConcurrentLimit": 3,
+  "platformAutomerge": false,
+  "automergeType": "pr",
+  "ignoreTests": false,
+  "pinDigests": true,
+  "rebaseWhen": "behind-base-branch",
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Merge routine updates only after all CI checks succeed",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "matchManagers": ["cargo"],
+      "groupName": "Rust dependencies"
+    },
+    {
+      "description": "Keep the Matrix SDK and crypto test dependency in sync",
+      "matchPackageNames": ["/^matrix-sdk($|-)/"],
+      "groupName": "Matrix Rust SDK"
+    },
+    {
+      "matchManagers": ["pip_requirements", "homeassistant-manifest"],
+      "groupName": "Python dependencies"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "The action reads Rust from rust-toolchain.toml; do not rewrite its expression",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["uses-with"],
+      "matchPackageNames": ["rust"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["rust-toolchain"],
+      "groupName": "Rust toolchain"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "matchPackageNames": ["rust", "docker.io/library/rust"],
+      "groupName": "Rust toolchain"
+    },
+    {
+      "description": "A minor bump of a pre-1.0 Rust crate can break its API",
+      "matchManagers": ["cargo"],
+      "matchCurrentVersion": "<1.0.0",
+      "matchUpdateTypes": ["minor"],
+      "automerge": false,
+      "addLabels": ["breaking-change"]
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["breaking-change"]
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"],
+    "automerge": true
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "minimumReleaseAge": "0 days",
+    "automerge": false
+  }
+}

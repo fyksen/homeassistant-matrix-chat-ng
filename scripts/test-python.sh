@@ -1,8 +1,15 @@
 #!/bin/sh
 set -eu
-# Dependencies are installed only in this disposable test container.
+# Pinned test/runtime dependencies are installed in a disposable test image.
+# HA_TEST_IMAGE may override the Renovate-managed default to test another HA release.
 ENGINE="${CONTAINER_ENGINE:-docker}"
-"$ENGINE" run --rm --entrypoint sh \
+IMAGE="matrix-ng-python-tests:local"
+if [ -n "${HA_TEST_IMAGE:-}" ]; then
+  "$ENGINE" build --pull -f .github/Dockerfile.tests -t "$IMAGE" \
+    --build-arg "HOME_ASSISTANT_IMAGE=$HA_TEST_IMAGE" .
+else
+  "$ENGINE" build --pull -f .github/Dockerfile.tests -t "$IMAGE" .
+fi
+"$ENGINE" run --rm \
   -v "$(pwd):/work" -w /work \
-  ghcr.io/home-assistant/home-assistant:2026.9.3 \
-  -c 'pip install --quiet pytest pytest-asyncio pytest-aiohttp ruff && python -m pytest -q && ruff check custom_components tests && ruff format --check custom_components tests'
+  "$IMAGE"
