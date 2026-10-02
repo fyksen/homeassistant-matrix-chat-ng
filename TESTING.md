@@ -121,6 +121,26 @@ require the repository owner's authorization and were **not changed or exercised
 remotely** in this session. Follow `MAINTENANCE.md` once these changes are pushed.
 The GitHub setup helper deliberately refuses to overwrite existing branch protection.
 
+## Fully automatic dependency policy
+
+After enabling the GitHub app and branch protection, the policy was changed to
+automatic PR creation and CI-gated merging for **all** updates, including major,
+pre-1.0 minor, security, pin/digest and lockfile updates. Dashboard approval, the
+weekly creation window and release-age waiting period were removed.
+
+- **93 Python tests** pass on minimum, pinned-current and latest-stable HA images.
+- Strict Renovate validation and Ruff checks pass.
+- Regression tests require automatic creation/merging and prohibit manual approval
+  overrides while preserving `ignoreTests: false` and `platformAutomerge: false`.
+- GitHub confirmed the existing main-branch CI run passed, `CI required` remained
+  mandatory, and no human PR-review requirement was configured.
+- The Mend portal's actual mode was not accessible in this session. If it is using
+  hosted Silent mode (`dryRun=lookup`), the repository owner must switch it to
+  Interactive mode once. A repository config cannot override that hosted setting.
+
+This policy attempts potentially breaking updates automatically; failed CI still
+prevents merging and may require an application-code fix.
+
 ## Not verified
 
 - An independent recipient's Element/other Matrix client.

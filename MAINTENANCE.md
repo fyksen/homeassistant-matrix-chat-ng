@@ -1,7 +1,7 @@
 # Low-maintenance dependency updates
 
-This repository is configured for **Renovate**, with tests and conservative
-automatic merging. No private Matrix credentials or GitHub token need to be added
+This repository is configured for **Renovate**, with automatic PR creation and
+CI-gated merging for **all dependency updates**. No private Matrix credentials or GitHub token need to be added
 as CI secrets. Renovate handles the Home Assistant manifest directly, which avoids
 keeping a second copy of its runtime requirements in a Python requirements file.
 
@@ -11,6 +11,11 @@ keeping a second copy of its runtime requirements in a Python requirements file.
 2. Install the [Renovate GitHub app](https://github.com/apps/renovate) and grant it
    access to **only this repository**. The app installation must be authorized by
    the repository owner; adding a configuration file cannot grant that access.
+   In the Mend Developer Portal, ensure the repository uses **Interactive mode**,
+   not Silent mode. Silent mode previews updates without creating GitHub PRs or
+   issues and can display all updates as awaiting approval. This hosted setting
+   cannot be overridden by the repository configuration. See
+   [Mend's onboarding-mode documentation](https://docs.renovatebot.com/mend-hosted/hosted-apps-config/#onboarding-behavior).
 3. Require the **`CI required`** status check on the default branch. Either use
    GitHub's branch-protection/ruleset UI or install GitHub CLI, authenticate, and run:
 
@@ -42,21 +47,31 @@ that approval remains necessary—this configuration does not bypass it.
 | `rust-toolchain.toml` | Compiler used locally, in CI and in the bridge build |
 | `.github/workflows/*.yaml` | GitHub Actions and CI tool image references |
 
-- Routine updates are checked **weekly**, Monday before 06:00 UTC, and grouped
-  to reduce PR noise. Only three dependency PRs are opened at once.
-- New releases normally wait **three days** before updates are proposed. Images
-  without release timestamps are not held indefinitely.
-- Patch/minor updates, digest pins and compatible lockfile refreshes may merge
-  **only when CI is green**. No automatic human approval or test bypass is enabled.
+- Renovate can create PRs and merge **at any time**, on its next hosted run.
+  There is no dashboard-approval requirement, weekly creation window or release-age
+  waiting period. Missing release timestamps therefore do not block updates.
+- Updates are grouped to reduce PR noise. Up to three dependency PRs are opened at
+  once; additional updates are handled automatically as those PRs merge.
+- **All dependency updates**—pins, digests, patch/minor/major versions, pre-1.0 Rust
+  minor versions, lockfile maintenance and security fixes—may merge **only when CI
+  is green**. No per-update human approval or test bypass is configured.
 - The Matrix SDK and crypto test dependency are grouped together. The Rust compiler
   and builder image are grouped too, with consistency tests as a second safeguard.
-- Major updates and **minor updates of pre-1.0 Rust crates** require review. For
-  example, `matrix-sdk 0.19 → 0.20` is not treated as a safe automatic update.
-- Security fixes can be proposed without the weekly schedule or release-age delay,
-  but are deliberately left for review. OSV alerts and GitHub vulnerability alerts
-  complement the Rust advisory scan.
+- This is an intentionally hands-off policy: even `matrix-sdk 0.19 → 0.20` may merge
+  if the tests pass. Tests cannot guarantee that every runtime regression or
+  supply-chain issue will be detected. There is no three-day release maturity buffer.
+- OSV alerts and GitHub vulnerability alerts complement the Rust advisory scan.
 - The Dependency Dashboard issue shows pending updates and failures. Failed
   update PRs remain unmerged rather than modifying application code automatically.
+
+If an update genuinely breaks the API or fails tests, code changes are still needed
+before it can merge. “Fully automated” means no routine approval clicks; it does
+not bypass failing checks or automatically repair arbitrary application code.
+
+The free Mend-hosted service normally scans active repositories every **four hours**;
+the repository's `at any time` schedule does not make that service run continuously.
+A manual **Run job** after changing the config/mode can start the first scan sooner.
+You should not need to select individual updates or use **Create/Rebase** normally.
 
 This updates the **repository**, not your running Home Assistant installation.
 Publishing releases and deploying new integration/bridge versions remain explicit
