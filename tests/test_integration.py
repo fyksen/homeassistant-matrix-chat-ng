@@ -119,7 +119,7 @@ async def test_send_action_returns_event_id_and_uses_default_room():
         "event_id": "$sent",
         "encrypted": True,
     }
-    bridge.send_message.assert_awaited_once_with("!room", "Hello", None, None)
+    bridge.send_message.assert_awaited_once_with("!room", "Hello", None, None, None)
 
 
 async def test_send_action_requires_explicit_entry_when_multiple_are_loaded():
@@ -142,8 +142,19 @@ async def test_send_action_requires_explicit_entry_when_multiple_are_loaded():
     )
     first.runtime_data.bridge.send_message.assert_not_awaited()
     second.runtime_data.bridge.send_message.assert_awaited_once_with(
-        "!other", "Hello", None, "stable-id"
+        "!other", "Hello", None, "stable-id", None
     )
+
+
+async def test_send_action_forwards_display_name():
+    bridge = SimpleNamespace(
+        send_message=AsyncMock(return_value={"event_id": "$sent", "encrypted": True})
+    )
+    entry = config_entry(bridge)
+    hass = home_assistant([entry])
+    send = await registered_action(hass)
+    await send(SimpleNamespace(data={"message": "Hello", "display_name": "Kitchen Bot"}))
+    bridge.send_message.assert_awaited_once_with("!room", "Hello", None, None, "Kitchen Bot")
 
 
 async def test_send_action_preserves_safe_bridge_errors():

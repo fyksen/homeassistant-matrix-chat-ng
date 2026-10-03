@@ -59,7 +59,8 @@
         "title": {"name": "Title", "description": "Optional title prepended to the message."},
         "room_id": {"name": "Room ID", "description": "Optional internal room ID; must be in the bridge allowlist. Defaults to the configured room."},
         "entry_id": {"name": "Config entry", "description": "Required when multiple Matrix NG entries are loaded."},
-        "transaction_id": {"name": "Transaction ID", "description": "Optional stable ID for retries: letters, digits, underscores or hyphens, at most 128 bytes. Reuse only for the same message."}
+        "transaction_id": {"name": "Transaction ID", "description": "Optional stable ID for retries: letters, digits, underscores or hyphens, at most 128 bytes. Reuse only for the same message."},
+        "display_name": {"name": "Display name", "description": "Optional per-room sender name shown for this message (for example one nick per automation). Empty means keep the current name."}
       }
     }
   }

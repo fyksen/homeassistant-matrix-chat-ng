@@ -25,6 +25,7 @@ use subtle::ConstantTimeEq;
 use tokio::sync::Mutex;
 
 pub const MAX_MESSAGE_BYTES: usize = 16_000;
+pub const MAX_DISPLAY_NAME_CHARS: usize = 256;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -151,6 +152,7 @@ struct SendRequest {
     message: String,
     title: Option<String>,
     transaction_id: Option<String>,
+    display_name: Option<String>,
 }
 
 fn body(request: &SendRequest) -> Result<String, ApiError> {
@@ -172,6 +174,15 @@ fn body(request: &SendRequest) -> Result<String, ApiError> {
                 .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_')
     }) {
         return Err(ApiError(StatusCode::BAD_REQUEST, "invalid_transaction_id"));
+    }
+    if request
+        .display_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .is_some_and(|name| name.chars().count() > MAX_DISPLAY_NAME_CHARS)
+    {
+        return Err(ApiError(StatusCode::BAD_REQUEST, "invalid_display_name"));
     }
     Ok(body)
 }
@@ -203,6 +214,16 @@ async fn send(
         // Fail closed. Unknown or plaintext rooms must NEVER receive a message.
         if !matches!(encryption, EncryptionState::Encrypted) {
             return Err(ApiError(StatusCode::CONFLICT, "room_not_encrypted"));
+        }
+        if let Some(name) = request
+            .display_name
+            .as_deref()
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+        {
+            room.set_own_member_display_name(Some(name.to_owned()))
+                .await
+                .map_err(|_| ApiError(StatusCode::BAD_GATEWAY, "display_name_failed"))?;
         }
         let transaction_id = request
             .transaction_id
@@ -415,6 +436,7 @@ mod tests {
             message: "hello".into(),
             title: Some("Title".into()),
             transaction_id: None,
+            display_name: None,
         };
         assert_eq!(body(&request).ok().unwrap(), "Title\n\nhello");
         request.message = " ".into();
@@ -424,6 +446,13 @@ mod tests {
         request.message = "valid".into();
         request.transaction_id = Some("invalid/id".into());
         assert!(body(&request).is_err());
+        request.transaction_id = None;
+        request.display_name = Some("  ".into());
+        assert!(body(&request).is_ok());
+        request.display_name = Some("x".repeat(MAX_DISPLAY_NAME_CHARS + 1));
+        assert!(body(&request).is_err());
+        request.display_name = Some("  Kitchen Bot  ".into());
+        assert!(body(&request).is_ok());
     }
 
     #[tokio::test]

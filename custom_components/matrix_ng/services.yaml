@@ -20,3 +20,6 @@ send_message:
     transaction_id:
       selector:
         text:
+    display_name:
+      selector:
+        text:
