@@ -1,6 +1,6 @@
 [package]
 name = "matrix-ng-bridge"
-version = "0.3.0"
+version = "0.3.9"
 edition = "2024"
 license = "MIT"
 description = "Encrypted Matrix notification bridge for Home Assistant"
