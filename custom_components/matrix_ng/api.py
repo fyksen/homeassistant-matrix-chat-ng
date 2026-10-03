@@ -94,6 +94,8 @@ class MatrixBridge:
                         "empty_message",
                         "message_too_large",
                         "invalid_transaction_id",
+                        "invalid_display_name",
+                        "display_name_failed",
                         "matrix_send_failed",
                         "send_timeout",
                         "encryption_state_unavailable",
@@ -175,6 +177,7 @@ class MatrixBridge:
         message: str,
         title: str | None = None,
         transaction_id: str | None = None,
+        display_name: str | None = None,
     ) -> dict[str, Any]:
         """Send once; transaction IDs allow callers to retry safely."""
         if not message.strip():
@@ -182,6 +185,8 @@ class MatrixBridge:
         body = f"{title}\n\n{message}" if title else message
         if len(body.encode("utf-8")) > MAX_MESSAGE_BYTES:
             raise BridgeError("message_too_large")
+        if display_name is not None and display_name.strip() and len(display_name.strip()) > 256:
+            raise BridgeError("invalid_display_name")
         result = await self._request(
             "POST",
             "send",
@@ -190,6 +195,7 @@ class MatrixBridge:
                 "message": message,
                 "title": title,
                 "transaction_id": transaction_id or uuid4().hex,
+                "display_name": display_name,
             },
         )
         if (

@@ -111,6 +111,7 @@ async def test_send_and_explicit_transaction_id(aiohttp_server):
             "message": "Hei, verden!",
             "title": "Test",
             "transaction_id": "test-123",
+            "display_name": None,
         }
         return web.json_response({"event_id": "$event", "encrypted": True})
 
@@ -120,6 +121,32 @@ async def test_send_and_explicit_transaction_id(aiohttp_server):
             "!room", "Hei, verden!", "Test", "test-123"
         )
         assert result == {"event_id": "$event", "encrypted": True}
+
+
+async def test_send_forwards_display_name(aiohttp_server):
+    async def handler(request):
+        payload = await request.json()
+        assert payload["room_id"] == "!room"
+        assert payload["message"] == "hello"
+        assert payload["title"] is None
+        assert payload["display_name"] == "Kitchen Bot"
+        assert isinstance(payload["transaction_id"], str) and payload["transaction_id"]
+        return web.json_response({"event_id": "$event", "encrypted": True})
+
+    url = await make_bridge(aiohttp_server, handler)
+    async with aiohttp.ClientSession() as session:
+        result = await MatrixBridge(session, url, "token").send_message(
+            "!room", "hello", display_name="Kitchen Bot"
+        )
+        assert result == {"event_id": "$event", "encrypted": True}
+
+
+async def test_send_rejects_overlong_display_name_without_network():
+    async with aiohttp.ClientSession() as session:
+        with pytest.raises(BridgeError, match="invalid_display_name"):
+            await MatrixBridge(session, "http://127.0.0.1:1", "token").send_message(
+                "!room", "hello", display_name="x" * 257
+            )
 
 
 @pytest.mark.parametrize(

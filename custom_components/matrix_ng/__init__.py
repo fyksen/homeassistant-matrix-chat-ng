@@ -50,6 +50,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 call.data["message"],
                 call.data.get("title"),
                 call.data.get("transaction_id"),
+                call.data.get("display_name"),
             )
         except BridgeError as err:
             raise HomeAssistantError(f"Encrypted Matrix send failed: {err}") from err
@@ -65,6 +66,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 vol.Optional(CONF_ROOM_ID): cv.string,
                 vol.Optional("entry_id"): cv.string,
                 vol.Optional("transaction_id"): cv.string,
+                vol.Optional("display_name"): cv.string,
             }
         ),
         supports_response=SupportsResponse.OPTIONAL,
