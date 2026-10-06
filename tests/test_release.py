@@ -83,7 +83,8 @@ def test_release_workflow_requires_successful_same_repo_main_push_ci():
     )
     gate = workflow["jobs"]["prepare"]["if"]
     assert "conclusion == 'success'" in gate
-    assert "event == 'push'" in gate
+    assert "event == 'schedule'" in gate
+    assert "event == 'workflow_dispatch'" in gate
     assert "default_branch" in gate
     assert "head_repository.full_name == github.repository" in gate
     assert workflow["permissions"] == {"contents": "read"}
@@ -91,6 +92,21 @@ def test_release_workflow_requires_successful_same_repo_main_push_ci():
     matrix = workflow["jobs"]["images"]["strategy"]["matrix"]["include"]
     assert {item["arch"] for item in matrix} == {"amd64", "aarch64"}
     assert any(item["runner"] == "ubuntu-24.04-arm" for item in matrix)
+
+
+def test_release_is_skipped_when_only_docs_tests_or_workflow_changed():
+    prior = {"tag_name": "v0.3.0", "body": f"Source commit: {SHA}"}
+    other_sha = "b" * 40
+    skip_files = ["README.md", "tests/test_api.py", ".github/workflows/ci.yaml"]
+    assert release.plan_release("0.3.0", [prior], other_sha, skip_files)["should_release"] is False
+    assert (
+        release.plan_release("0.3.0", [prior], other_sha, ["src/main.rs"])["should_release"] is True
+    )
+
+
+def test_ci_schedule_is_monthly_not_weekly():
+    workflow = yaml.load((ROOT / ".github/workflows/ci.yaml").read_text(), Loader=yaml.BaseLoader)
+    assert workflow["on"]["schedule"][0]["cron"] == "0 6 1 * *"
 
 
 def test_source_versions_are_consistent():

@@ -5,7 +5,8 @@ on:
   merge_group:
   workflow_dispatch:
   schedule:
-    - cron: "23 6 * * 1"
+    # Monthly release train: first of the month at 06:00 UTC.
+    - cron: "0 6 1 * *"
 
 permissions:
   contents: read

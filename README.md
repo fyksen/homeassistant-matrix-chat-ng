@@ -345,7 +345,7 @@ development.
 Renovate updates Rust/Python dependencies, Home Assistant requirements, container
 images and GitHub Actions. All dependency updates, including major versions and
 security fixes, can merge after CI passes without approval clicks. CI tests the supported minimum and current/latest HA
-versions and also runs weekly to catch upstream changes.
+versions and also runs monthly to drive the release train and catch upstream changes.
 
 See **[MAINTENANCE.md](MAINTENANCE.md)** for the one-time GitHub app installation
 and required-check setup. After that, dependency upkeep should mostly be hands-off.

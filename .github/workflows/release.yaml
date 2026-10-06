@@ -15,7 +15,7 @@ jobs:
   prepare:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.event == 'schedule' || github.event.workflow_run.event == 'workflow_dispatch') &&
       github.event.workflow_run.head_branch == github.event.repository.default_branch &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
@@ -29,6 +29,16 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+          fetch-depth: 0
+      - name: Find changed files since the last release
+        id: changes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            printf '%s\n' '(initial release)' > /tmp/changed-files.txt
+          else
+            git diff --name-only "$LAST_TAG"..HEAD > /tmp/changed-files.txt
+          fi
       - id: plan
         name: Plan a new release only for the current tested main commit
         env:
@@ -45,12 +55,13 @@ jobs:
           python3 - <<'PY'
           import json, os, sys
           sys.path.insert(0, "scripts")
-          from release import plan_version
+          from release import plan_release
           from pathlib import Path
           releases = [release for page in json.load(open("/tmp/releases-pages.json")) for release in page]
           known = {release["tag_name"] for release in releases}
           releases += [{"tag_name": tag["name"], "draft": True} for page in json.load(open("/tmp/tags-pages.json")) for tag in page if tag["name"] not in known]
-          plan = plan_version(Path("VERSION").read_text().strip(), releases, os.environ["SOURCE_SHA"])
+          changed_files = [line.strip() for line in open("/tmp/changed-files.txt") if line.strip()]
+          plan = plan_release(Path("VERSION").read_text().strip(), releases, os.environ["SOURCE_SHA"], changed_files)
           with open(os.environ["GITHUB_OUTPUT"], "a") as file:
               file.write(f"version={plan['version']}\nshould_release={str(plan['should_release']).lower()}\n")
           PY
