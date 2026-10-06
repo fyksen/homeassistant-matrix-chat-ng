@@ -3,11 +3,24 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import re
 import zipfile
 from pathlib import Path
+
+# Paths that do not affect the shipped bridge/integration/app. Releases are
+# skipped when every change since the last tag matches one of these patterns.
+SKIP_RELEASE_PATTERNS = [
+    "**/*.md",
+    "tests/**",
+    ".github/**",
+    "requirements-test.txt",
+    "renovate.json",
+    "scripts/test-*.sh",
+    "scripts/smoke-test.py",
+]
 
 
 def semver(value: str) -> tuple[int, int, int]:
@@ -44,6 +57,49 @@ def plan_version(base: str, releases: list[dict], source_sha: str) -> dict:
     latest = max(versions, default=(-1, -1, -1))
     version = base_version if base_version > latest else (latest[0], latest[1], latest[2] + 1)
     return {"should_release": True, "version": ".".join(map(str, version))}
+
+
+def _path_matches_pattern(path: str, pattern: str) -> bool:
+    """Glob match supporting '**' for any number of directory levels."""
+    path_parts = path.split("/")
+    pattern_parts = pattern.split("/")
+
+    def match(pi: int, ci: int) -> bool:
+        if pi == len(pattern_parts):
+            return ci == len(path_parts)
+        if ci == len(path_parts):
+            return pattern_parts[pi] == "**" and match(pi + 1, ci)
+        pp = pattern_parts[pi]
+        cp = path_parts[ci]
+        if pp == "**":
+            return match(pi + 1, ci) or match(pi, ci + 1)
+        if fnmatch.fnmatch(cp, pp):
+            return match(pi + 1, ci + 1)
+        return False
+
+    return match(0, 0)
+
+
+def is_release_worthy(changed_files: list[str]) -> bool:
+    """Return True if at least one changed file is not purely docs/tests/workflow."""
+    if not changed_files:
+        return False
+    return any(
+        not any(_path_matches_pattern(path, pattern) for pattern in SKIP_RELEASE_PATTERNS)
+        for path in changed_files
+    )
+
+
+def plan_release(
+    base: str, releases: list[dict], source_sha: str, changed_files: list[str]
+) -> dict:
+    """Plan a release, skipping docs/tests/workflow-only batches."""
+    plan = plan_version(base, releases, source_sha)
+    if not plan["should_release"]:
+        return plan
+    if not is_release_worthy(changed_files):
+        return {"should_release": False, "version": plan["version"]}
+    return plan
 
 
 def replace(path: Path, pattern: str, replacement: str, expected: int | None = None) -> None:

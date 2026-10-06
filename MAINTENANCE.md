@@ -37,14 +37,22 @@ that approval remains necessary—this configuration does not bypass it.
 
 ## Releases and Home Assistant OS packages
 
-After every successful CI run on a `main` push, the **Release** workflow:
+Releases follow a **monthly train**: the first of every month at 06:00 UTC, a scheduled
+CI run triggers the **Release** workflow if the previous CI run was successful. Security
+alerts and routine dependency updates are included in that monthly batch rather than
+released immediately.
 
-1. Plans a semantic version from `VERSION` and existing tags. Ordinary merges become
+The release workflow:
+
+1. Plans a semantic version from `VERSION` and existing tags. Ordinary releases become
    patch releases; a version is never reused.
-2. Builds native `amd64` and `aarch64` bridge and Supervisor app images and publishes
+2. Skips the month if the only changes since the last release are docs, tests, or
+   workflow/CI configuration (e.g., `*.md`, `tests/**`, `.github/**`, `renovate.json`,
+   `requirements-test.txt`, and test helper scripts).
+3. Builds native `amd64` and `aarch64` bridge and Supervisor app images and publishes
    multi-architecture manifests to GHCR.
-3. Creates a matching GitHub release with a `matrix_ng.zip` integration asset for HACS.
-4. Fast-forwards the generated `apps` branch (app repository with the pinned image
+4. Creates a matching GitHub release with a `matrix_ng.zip` integration asset for HACS.
+5. Fast-forwards the generated `apps` branch (app repository with the pinned image
    version), which drives Supervisor update notifications.
 
 Release bumps are never pushed to protected `main`; the release tag and `apps` branch
@@ -56,7 +64,9 @@ your profile's **Packages → Package settings → Change visibility → Public*
 the failed release job. The workflow refuses to publish release metadata until both
 images are anonymously pullable.
 
-To start a new minor/major series, change `VERSION` in a normal CI-gated PR.
+To start a new minor/major series, change `VERSION` in a normal CI-gated PR. To release
+off-cycle, trigger the **CI** workflow manually (`workflow_dispatch`); the Release
+workflow will run afterwards because the upstream CI event is `workflow_dispatch`.
 
 ## What happens automatically
 
@@ -113,11 +123,11 @@ Every push, PR and merge-queue change runs:
 5. Strict Renovate configuration validation and GitHub Actions workflow linting.
 6. **`CI required`**, which fails if any job fails, is cancelled or is skipped.
 
-CI also runs weekly, Monday at 06:23 UTC, to find new Home Assistant incompatibilities
-or published security advisories even if nobody has pushed code. GitHub schedules
-are best-effort and may run late; GitHub may disable scheduled workflows after
-extended repository inactivity. Watch workflow-failure notifications and the
-Renovate dashboard for those cases.
+CI also runs monthly, on the first of the month at 06:00 UTC, to drive the release
+train and find new Home Assistant incompatibilities or published security advisories
+even if nobody has pushed code. GitHub schedules are best-effort and may run late;
+GitHub may disable scheduled workflows after extended repository inactivity. Watch
+workflow-failure notifications and the Renovate dashboard for those cases.
 
 There are no path filters that can accidentally skip required tests on a dependency
 PR. Workflow permissions are read-only, checkout credentials are not persisted,
