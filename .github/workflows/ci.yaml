@@ -34,7 +34,7 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as file:
               file.write(f"version={version}\n")
           PY
-      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
         with:
           toolchain: ${{ steps.toolchain.outputs.version }}
           components: rustfmt, clippy
@@ -118,7 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     container:
-      image: ghcr.io/renovatebot/renovate:44.145.1@sha256:6f1f3e2d9d0c3f99aa1f61f7509d302185de7deb173ac8c5ff88a5ce283ec435
+      image: ghcr.io/renovatebot/renovate:44.148.4@sha256:2c7b118cb2d1b7137e63322efc0e1d3d96d5f6937ec1c35c3cd9b7de73a8ed29
       options: --user root
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
