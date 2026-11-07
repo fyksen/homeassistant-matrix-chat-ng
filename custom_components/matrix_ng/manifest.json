@@ -12,7 +12,7 @@
     "hassio"
   ],
   "requirements": [
-    "regex==2026.9.29"
+    "regex==2026.11.7"
   ],
   "codeowners": [
     "@fyksen"
